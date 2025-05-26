@@ -6,7 +6,7 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -54,31 +54,47 @@ app.get('/health', (req, res) => {
 
 // Ruta principal para el cálculo de eficiencia
 app.post('/render', (req, res) => {
-  const { superficie, tipoConstruccion, orientacion, aislacion, ventanas } = req.body;
+  try {
+    console.log('Recibida petición POST /render:', req.body);
+    
+    const { superficie, tipoConstruccion, orientacion, aislacion, ventanas } = req.body;
 
-  // Verificar que todos los campos requeridos estén presentes
-  if (!superficie || !tipoConstruccion || !orientacion || !aislacion || !ventanas) {
-    return res.status(400).json({ 
-      error: 'Todos los campos son requeridos' 
+    // Verificar que todos los campos requeridos estén presentes
+    if (!superficie || !tipoConstruccion || !orientacion || !aislacion || !ventanas) {
+      console.log('Error: Campos faltantes:', { superficie, tipoConstruccion, orientacion, aislacion, ventanas });
+      return res.status(400).json({ 
+        error: 'Todos los campos son requeridos',
+        camposRecibidos: { superficie, tipoConstruccion, orientacion, aislacion, ventanas }
+      });
+    }
+
+    // Calcular puntaje
+    const puntaje = calcularPuntaje({
+      tipoConstruccion,
+      orientacion,
+      aislacion,
+      ventanas
+    });
+
+    // Determinar etiqueta
+    const etiqueta = determinarEtiqueta(puntaje);
+
+    const respuesta = {
+      etiqueta,
+      puntaje
+    };
+
+    console.log('Enviando respuesta:', respuesta);
+
+    // Enviar respuesta
+    res.json(respuesta);
+  } catch (error) {
+    console.error('Error en /render:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      detalles: error.message
     });
   }
-
-  // Calcular puntaje
-  const puntaje = calcularPuntaje({
-    tipoConstruccion,
-    orientacion,
-    aislacion,
-    ventanas
-  });
-
-  // Determinar etiqueta
-  const etiqueta = determinarEtiqueta(puntaje);
-
-  // Enviar respuesta
-  res.json({
-    etiqueta,
-    puntaje
-  });
 });
 
 // Iniciar el servidor

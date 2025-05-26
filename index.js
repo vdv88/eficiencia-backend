@@ -6,11 +6,22 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST'],
-  credentials: true
+  origin: ['https://eficiencia-frontend.vercel.app', 'https://eficiencia-frontend.vercel.app/'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type']
 }));
+
 app.use(express.json());
+
+// Log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`, {
+    headers: req.headers,
+    body: req.body
+  });
+  next();
+});
 
 // Función para calcular el puntaje base y aplicar penalizaciones
 function calcularPuntaje(datos) {
@@ -47,9 +58,22 @@ function determinarEtiqueta(puntaje) {
   return 'D';
 }
 
+// Test endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'API funcionando correctamente' });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK' });
+});
+
+// Test POST endpoint
+app.post('/test', (req, res) => {
+  res.json({ 
+    message: 'POST funcionando correctamente',
+    receivedData: req.body 
+  });
 });
 
 // Ruta principal para el cálculo de eficiencia
@@ -95,6 +119,15 @@ app.post('/render', (req, res) => {
       detalles: error.message
     });
   }
+});
+
+// Error handling para rutas no encontradas
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Ruta no encontrada',
+    path: req.path,
+    method: req.method
+  });
 });
 
 // Iniciar el servidor
